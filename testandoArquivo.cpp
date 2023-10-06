@@ -9,7 +9,7 @@ using namespace std;
 
 class Dados{
     public:
-        string _dados;
+        vector<string> _dados;
         bool empty;
         bool savo;
         Dados();
@@ -19,7 +19,6 @@ Dados::Dados(){
     empty = true;
     savo = false;
 }
-
 
 class BancoDeDados{
     public:
@@ -120,6 +119,8 @@ class Aluno{
         bool persisteAluno(string arquivo);
 
         bool recuperarAluno(string aluno, string arquivo);
+
+        string toString();
 };
 
 Aluno::Aluno(){
@@ -176,18 +177,56 @@ bool Aluno::persisteAluno(string arquivo){
     }
 }
 
-bool Aluno::recuperarAluno(string aluno, string arquivo){
-    Dados dados;
-    vector<string> campos;
-    vector<string> vet;
-    dados = BancoDeDados::recuperarDados(arquivo);
-    if(dados.empty){
-        return false;
+bool Aluno::recuperarAluno(string aluno, string arquivo) {
+        ifstream arquivoDados(arquivo);
+        if (!arquivoDados) {
+            cerr << "Erro ao abrir o arquivo." << endl;
+            return false;
+        }
+
+        string linha;
+        while (getline(arquivoDados, linha)) {
+            linha.erase(linha.find('{'),1);
+            istringstream ss(linha);
+            string alunoNome, alunoEmail;
+
+            getline(ss, alunoNome, ',');
+            getline(ss, alunoEmail, ',');
+
+            if (alunoNome == aluno) {
+                this->nome = alunoNome;
+                this->email = alunoEmail;
+                this->avaliacoes.clear();
+
+                string token;
+                while (getline(ss, token, ',')) {
+                    Avaliacao avaliacao;
+                    avaliacao.setNome(token);
+                    getline(ss, token, ',');
+                    avaliacao.setNota(stof(token)); 
+                    this->avaliacoes.push_back(avaliacao);    
+                }
+
+                arquivoDados.close();
+                return true; // Aluno encontrado e carregado
+            }
+        }
+
+        arquivoDados.close();
+        return false; // Aluno não encontrado
     }
 
-    istringstream ss(dados._dados);
 
-    return true;
+string Aluno::toString(){
+    string aux = "Nome: "+this->getNome()+"\nEmail: "+this->getEmail()+"\nAvaliacoes{";
+    for(size_t i = 0; i < avaliacoes.size(); i++){
+        if(i == avaliacoes.size() - 1){
+            aux += "\n  Nome da Avaliacao: "+avaliacoes[i].getNome()+"\n  Nota: "+to_string(avaliacoes[i].getNota())+"\n}\n";
+        }else{
+            aux += "\n  Nome da Avaliacao: "+avaliacoes[i].getNome()+"\n  Nota: "+to_string(avaliacoes[i].getNota());
+        }
+    }
+    return aux;
 }
 
 void pause();
@@ -196,48 +235,55 @@ void limpaTela();
 int main(){
     limpaTela();
 
-    Aluno aluno;
+    Aluno aux;
     string nome, email, nome_Avaliacao;
     float nota;
     char sn;
     Avaliacao avaliacao = Avaliacao();
 
-    do{
-        cout << " Cadastro de Alunos\n\n";
-        cout << " Informe o nome do aluno: ";
-        cin >> nome;
-        aluno.setNome(nome);
-        cout << " Informe o email do aluno: ";
-        cin >> email;
-        aluno.setEmail(email);
+    // do{
+    //     cout << " Cadastro de Alunos\n\n";
+    //     cout << " Informe o nome do aluno: ";
+    //     cin >> nome;
+    //     aluno.setNome(nome);
+    //     cout << " Informe o email do aluno: ";
+    //     cin >> email;
+    //     aluno.setEmail(email);
 
-        cout << "\n";
-        do{
-            cout << " Cadastro de Avaliacoes do Aluno\n\n";
+    //     cout << "\n";
+    //     do{
+    //         cout << " Cadastro de Avaliacoes do Aluno\n\n";
 
-            cout << " Informe o nome da Avaliacao: ";
-            cin >> nome_Avaliacao;
-            avaliacao.setNome(nome_Avaliacao);
-            cout << " Informe a nota da Avaliacao: ";
-            cin >> nota;
-            avaliacao.setNota(nota);
+    //         cout << " Informe o nome da Avaliacao: ";
+    //         cin >> nome_Avaliacao;
+    //         avaliacao.setNome(nome_Avaliacao);
+    //         cout << " Informe a nota da Avaliacao: ";
+    //         cin >> nota;
+    //         avaliacao.setNota(nota);
 
-            aluno.addAvaliacao(avaliacao);
+    //         aluno.addAvaliacao(avaliacao);
 
-            cout << "\nDeseja cadastrar uma nova avaliacao? (S/N)";
-            cin >> sn;
-        }while(sn != 'N' && sn != 'n');
+    //         cout << "\nDeseja cadastrar uma nova avaliacao? (S/N)";
+    //         cin >> sn;
+    //     }while(sn != 'N' && sn != 'n');
         
-        if(aluno.persisteAluno("alunos.txt")){
-            cout << "\nAluno Cadastrado com Sucesso!\n\n";
-        }else{
-            cout << "\nAluno Nao Cadastrado!\n\n";
-        }
+    //     if(aluno.persisteAluno("alunos.txt")){
+    //         cout << "\nAluno Cadastrado com Sucesso!\n\n";
+    //     }else{
+    //         cout << "\nAluno Nao Cadastrado!\n\n";
+    //     }
 
-        cout << "\nDeseja cadastrar Outro Aluno? (S/N)";
-        cin >> sn;
+    //     cout << "\nDeseja cadastrar Outro Aluno? (S/N)";
+    //     cin >> sn;
 
-    }while(sn != 'N' && sn != 'n');
+    // }while(sn != 'N' && sn != 'n');
+
+    if(aux.recuperarAluno("kika","alunos.txt")){
+        cout << "\nAluno Recuperado com Sucesso!\n\n";
+        cout << aux.toString();
+    }else{
+        cout << "\nAluno Nao Recuperado!\n\n";
+    }
 
     return 0;
 }
